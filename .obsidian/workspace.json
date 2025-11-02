@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "c030890e89176568",
+        "id": "d9dca5962837a6ad",
         "type": "tabs",
         "children": [
           {
-            "id": "6c31903f2c336f86",
+            "id": "6a6fae7cfd61cb7d",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "1. 発見フェーズ/1.6. ユーザーストーリーマッピング/ユーザーストーリーマッピングとは.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "ユーザーストーリーマッピングとは"
+              "title": "新規タブ"
             }
           }
         ]
@@ -94,7 +90,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "1. 発見フェーズ/1.6. ユーザーストーリーマッピング/ユーザーストーリーマッピングとは.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +99,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "ユーザーストーリーマッピングとはへのバックリンク"
+              "title": "バックリンク"
             }
           },
           {
@@ -113,12 +108,11 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "1. 発見フェーズ/1.6. ユーザーストーリーマッピング/ユーザーストーリーマッピングとは.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "ユーザーストーリーマッピングとはからのアウトゴーイングリンク"
+              "title": "アウトゴーイングリンク"
             }
           },
           {
@@ -142,21 +136,30 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "1. 発見フェーズ/1.6. ユーザーストーリーマッピング/ユーザーストーリーマッピングとは.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "ユーザーストーリーマッピングとはのアウトライン"
+              "title": "アウトライン"
+            }
+          },
+          {
+            "id": "27c3a3cefff7b73c",
+            "type": "leaf",
+            "state": {
+              "type": "git-view",
+              "state": {},
+              "icon": "git-pull-request",
+              "title": "Source Control"
             }
           }
-        ]
+        ],
+        "currentTab": 4
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -166,11 +169,16 @@
       "daily-notes:今日のデイリーノートを開く": false,
       "templates:テンプレートを挿入": false,
       "command-palette:コマンドパレットを開く": false,
-      "bases:Create new base": false
+      "bases:Create new base": false,
+      "obsidian-git:Open Git source control": false
     }
   },
-  "active": "6c31903f2c336f86",
+  "active": "687b8c34ab33ba5e",
   "lastOpenFiles": [
+    "無題のファイル 1.base",
+    "無題のファイル.base",
+    "INDEX.md",
+    "1. 発見フェーズ/1.6. ユーザーストーリーマッピング/ユーザーストーリーマッピングとは.md",
     "1. 発見フェーズ/1.6. ユーザーストーリーマッピング/ユーザーストーリーマップ.md",
     "1. 発見フェーズ/1.5. コンテキストマップの関係性定義/コンテキストマップの関係性を定義するとは.md",
     "1. 発見フェーズ/1.4. コア・ドメインの特定/コア・ドメインの特定とは.md",
@@ -193,12 +201,9 @@
     "4. 継続的リファクタリングフェーズ/4.1. モデルとコードの乖離の検知/モデルとコードの乖離の検知とは.md",
     "4. 継続的リファクタリングフェーズ/4.4. コンテキストマップの更新/コンテキストマップの更新とは.md",
     "4. 継続的リファクタリングフェーズ/4.4. コンテキストマップの更新/コンテキストマップ (v2.0).md",
-    "INDEX.md",
     "4. 継続的リファクタリングフェーズ/概要.md",
     "4. 継続的リファクタリングフェーズ/4.4. コンテキストマップの更新",
-    "4. 継続的リファクタリングフェーズ/4.3. コードのリファクタリング/コードのリファクタリングとは.md",
     "4. 継続的リファクタリングフェーズ/4.3. コードのリファクタリング",
-    "4. 継続的リファクタリングフェーズ/4.2. モデルと仕様の精錬/更新されたUSDM仕様記述書 (v1.1).md",
     "4. 継続的リファクタリングフェーズ/4.2. モデルと仕様の精錬",
     "4. 継続的リファクタリングフェーズ/4.1. モデルとコードの乖離の検知",
     "4. 継続的リファクタリングフェーズ",
@@ -206,7 +211,6 @@
     "3. 実装フェーズ/3.3. アプリケーション層の実装",
     "3. 実装フェーズ/3.2. ドメイン層の実装 (TDD)",
     "3. 実装フェーズ/3.1. アーキテクチャ 設計",
-    "3. 実装フェーズ",
     "2. ドメインモデリングと仕様化フェーズ/無題のファイル.canvas"
   ]
 }
