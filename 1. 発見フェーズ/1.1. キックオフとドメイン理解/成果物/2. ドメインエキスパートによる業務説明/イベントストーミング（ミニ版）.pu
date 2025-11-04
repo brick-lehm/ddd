@@ -1,0 +1,227 @@
+@startuml イベントストーミング
+
+title Signup Workflow - イベントストーミング（ミニ版）
+
+skinparam backgroundColor #FFFFF0
+skinparam defaultTextAlignment center
+
+' 凡例
+legend top left
+  |= 色 |= 意味 |
+  | <back:orange>オレンジ</back> | ドメインイベント（過去形） |
+  | <back:lightblue>青</back> | コマンド（ユーザーアクション） |
+  | <back:yellow>黄色</back> | 集約・エンティティ |
+  | <back:pink>ピンク</back> | ポリシー・ビジネスルール |
+  | <back:lightgreen>緑</back> | 外部システム |
+endlegend
+
+' タイムライン（左から右へ）
+
+rectangle "1. プラン選択フェーズ" #WhiteSmoke {
+  (ユーザー) as user1
+  user1 -right-> [<back:lightblue>プランを選択する</back>] : アクション
+
+  [<back:lightblue>プランを選択する</back>] -right-> (<back:orange>プラン選択完了</back>) : イベント発生
+
+  (<back:orange>プラン選択完了</back>) -right-> [<back:yellow>プラン選択情報\n(Cookie)</back>] : 状態保存
+
+  note bottom of [<back:yellow>プラン選択情報\n(Cookie)</back>]
+    ユーザー未識別のため
+    Cookie に一時保存
+    DB永続化なし
+  end note
+}
+
+rectangle "2. サインアップフェーズ" #WhiteSmoke {
+  [<back:yellow>プラン選択情報\n(Cookie)</back>] -right-> [<back:lightblue>認証情報を登録する</back>] : 次の工程へ
+
+  [<back:lightblue>認証情報を登録する</back>] -right-> (<back:orange>ユーザー登録完了</back>) : イベント発生
+
+  (<back:orange>ユーザー登録完了</back>) -right-> [<back:yellow>ユーザー\n(オンボード中)</back>] : 集約生成
+
+  note bottom of [<back:yellow>ユーザー\n(オンボード中)</back>]
+    **重要な状態**
+    - サインイン可能
+    - オンボーディング未完了
+    - 決済情報未登録
+  end note
+
+  (<back:orange>ユーザー登録完了</back>) -down-> [<back:pink>ポリシー:\n工程管理ルール</back>] : トリガー
+
+  [<back:pink>ポリシー:\n工程管理ルール</back>] -down-> [<back:lightblue>次の工程へ遷移</back>]
+
+  note bottom of [<back:pink>ポリシー:\n工程管理ルール</back>]
+    Temporalで実装
+    工程の完了状態を記録
+    次に実行すべき工程を判定
+  end note
+}
+
+rectangle "3. 決済情報登録フェーズ" #WhiteSmoke {
+  [<back:lightblue>次の工程へ遷移</back>] -right-> [<back:lightblue>決済情報を登録する</back>]
+
+  [<back:lightblue>決済情報を登録する</back>] -right-> [<back:lightgreen>Stripe</back>] : 外部システム連携
+
+  [<back:lightgreen>Stripe</back>] -right-> (<back:orange>決済完了</back>) : Webhook
+  [<back:lightgreen>Stripe</back>] -down-> (<back:orange>決済失敗</back>) : Webhook
+
+  (<back:orange>決済完了</back>) -right-> [<back:yellow>ユーザー\n(アクティブ)</back>] : 状態遷移
+
+  note bottom of [<back:yellow>ユーザー\n(アクティブ)</back>]
+    **オンボーディング完了**
+    全工程完了
+    サービス利用可能
+  end note
+
+  (<back:orange>決済失敗</back>) -down-> [<back:pink>ポリシー:\nリトライ処理</back>]
+  [<back:pink>ポリシー:\nリトライ処理</back>] -down-> [<back:lightblue>決済情報を\n再登録する</back>]
+}
+
+rectangle "4. 離脱・再開フェーズ（重要）" #LightYellow {
+  (ユーザー) as user2
+  user2 -right-> [<back:lightblue>サインインする</back>] : 再アクセス
+
+  [<back:lightblue>サインインする</back>] -right-> (<back:orange>サインイン成功</back>)
+
+  (<back:orange>サインイン成功</back>) -right-> [<back:pink>ポリシー:\nオンボーディング\n状態チェック</back>] : トリガー
+
+  [<back:pink>ポリシー:\nオンボーディング\n状態チェック</back>] -down-> [<back:lightblue>未完了工程へ\n自動遷移</back>] : オンボード中の場合
+
+  note bottom of [<back:pink>ポリシー:\nオンボーディング\n状態チェック</back>]
+    **Temporalで実装する重要ロジック**
+
+    IF ユーザー状態 == "オンボード中" THEN
+      未完了の工程を判定
+      次の工程へ自動遷移
+    ELSE IF ユーザー状態 == "アクティブ" THEN
+      通常のサインイン処理
+    END IF
+  end note
+}
+
+@enduml
+
+@startuml イベントストーミング_ドメインイベント一覧
+
+title ドメインイベント一覧と詳細
+
+skinparam backgroundColor #FFFFF0
+
+package "ドメインイベント" #Orange {
+  class "プラン選択完了" as event1 {
+    + 発生タイミング: サインアップフォームへ遷移時
+    + 保存データ: プランID（Cookie）
+    + 次のアクション: 認証情報登録画面表示
+  }
+
+  class "ユーザー登録完了" as event2 {
+    + 発生タイミング: ユーザー情報のDB保存時
+    + 保存データ: メールアドレス、パスワード
+    + ユーザー状態: オンボード中
+    + 次のアクション: 決済情報登録画面へ遷移
+    --
+    **重要**: この時点でサインイン可能
+  }
+
+  class "決済完了" as event3 {
+    + 発生タイミング: Stripe決済完了Webhook受信時
+    + 保存データ: Stripe顧客ID、決済情報
+    + ユーザー状態: アクティブ
+    + 次のアクション: オンボーディング完了
+    --
+    **意味**: 初回課金完了
+  }
+
+  class "決済失敗" as event4 {
+    + 発生タイミング: Stripe決済失敗時
+    + 保存データ: エラー情報
+    + ユーザー状態: オンボード中（変化なし）
+    + 次のアクション: 決済情報再登録画面へ遷移
+  }
+
+  class "サインイン成功" as event5 {
+    + 発生タイミング: 認証成功時
+    + トリガー: オンボーディング状態チェック
+    + 次のアクション: 状態に応じた画面遷移
+    --
+    **重要**: 工程管理の起点となるイベント
+  }
+}
+
+package "ユーザーアクション（コマンド）" #LightBlue {
+  class "プランを選択する" as cmd1
+  class "認証情報を登録する" as cmd2
+  class "決済情報を登録する" as cmd3
+  class "サインインする" as cmd4
+}
+
+package "集約・エンティティ" #Yellow {
+  class "ユーザー" as agg1 {
+    + ユーザーID
+    + メールアドレス
+    + パスワード（ハッシュ化）
+    + オンボーディング状態
+    --
+    **状態**
+    - オンボード中
+    - アクティブ
+  }
+
+  class "プラン選択情報" as agg2 {
+    + プランID
+    + 選択日時
+    --
+    **保存先**: Cookie
+    **永続化**: なし
+  }
+}
+
+package "ビジネスルール（ポリシー）" #Pink {
+  class "工程管理ルール" as policy1 {
+    + 各工程の完了状態を記録
+    + 次に実行すべき工程を判定
+    + 順序通りの完了を保証
+    --
+    **実装**: Temporal Workflow
+  }
+
+  class "オンボーディング状態チェック" as policy2 {
+    + サインイン時に状態を確認
+    + 未完了工程への自動遷移
+    --
+    **実装**: Temporal Workflow
+  }
+
+  class "リトライ処理" as policy3 {
+    + 決済失敗時の再試行制御
+  }
+}
+
+package "外部システム" #LightGreen {
+  class "Stripe" as ext1 {
+    + 決済処理
+    + Webhook通知
+    --
+    **イベント**
+    - 決済完了
+    - 決済失敗
+  }
+}
+
+' 関連
+cmd1 --> event1
+cmd2 --> event2
+cmd3 --> ext1
+ext1 --> event3
+ext1 --> event4
+cmd4 --> event5
+
+event1 --> agg2
+event2 --> agg1
+event3 --> agg1
+
+event2 --> policy1
+event5 --> policy2
+event4 --> policy3
+
+@enduml

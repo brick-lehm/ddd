@@ -1,0 +1,86 @@
+@startmindmap
+<style>
+mindmapDiagram {
+  node {
+    BackgroundColor lightblue
+  }
+  :depth(1) {
+    BackGroundColor white
+  }
+  .pain {
+    BackgroundColor #FFB3B3
+  }
+  .ideal {
+    BackgroundColor #B3FFB3
+  }
+  .value {
+    BackgroundColor #FFEB99
+  }
+}
+</style>
+
+* Signup Workflow\n工程再開機能
+
+left side
+
+** 現状の痛み <<pain>>
+*** サインアップ途中離脱で\nエラー発生 <<pain>>
+**** 『既に登録済み』エラーで\n決済フォームに遷移不可 <<pain>>
+**** サインアップ後\n決済情報登録前に離脱 <<pain>>
+
+*** 運営コストが高い <<pain>>
+**** 1件あたり\n30分〜1時間の対応 <<pain>>
+**** 手動で認証情報を削除 <<pain>>
+**** 他の重要業務が圧迫 <<pain>>
+
+*** ユーザー体験が悪い <<pain>>
+**** 10%のユーザーが\n問い合わせせず離脱 <<pain>>
+**** 再サインアップまで\n約1時間待ち <<pain>>
+**** 機会損失が発生 <<pain>>
+
+*** 根本原因 <<pain>>
+**** 工程の完了状態を\n管理する仕組みがない <<pain>>
+**** 認証情報登録=\nサインイン可能と判定 <<pain>>
+
+right side
+
+** 理想の状態 <<ideal>>
+*** 途中離脱しても\n続きから再開可能 <<ideal>>
+**** 再サインイン/サインアップ時に\n未完了工程へ自動遷移 <<ideal>>
+**** 全工程完了なら\n通常サインイン <<ideal>>
+
+*** 工程管理の実装 <<ideal>>
+**** 各ユーザーの\n完了状態を記録 <<ideal>>
+**** Temporalで\nオーケストレーション <<ideal>>
+
+*** 現在の要件 <<ideal>>
+**** 工程は順番通りに完了 <<ideal>>
+**** 後戻りは不要 <<ideal>>
+**** 順序変更・スキップは\n今回対象外 <<ideal>>
+
+*** 将来の拡張性(メモ) <<ideal>>
+**** 工程の順序変更 <<ideal>>
+**** 後から戻って変更可能に <<ideal>>
+**** 条件による工程スキップ <<ideal>>
+**** 新しい工程の追加 <<ideal>>
+
+** ビジネス価値 <<value>>
+*** 最重要目標\n手動対応ゼロ <<value>>
+**** サポートコスト削減 <<value>>
+***** 運営者の工数削減 <<value>>
+***** 重要業務に集中可能 <<value>>
+
+*** 機会損失の削減 <<value>>
+**** 10%の離脱ユーザーを\n救済 <<value>>
+**** コンバージョン率向上 <<value>>
+
+*** ユーザー満足度向上 <<value>>
+**** スムーズな\nサインアップ体験 <<value>>
+**** 待ち時間の削減\n(1時間→即時) <<value>>
+**** エラーストレスの解消 <<value>>
+
+*** スケーラビリティ向上 <<value>>
+**** ユーザー増加でも\nコスト増なし <<value>>
+**** 自動化による安定運用 <<value>>
+
+@endmindmap

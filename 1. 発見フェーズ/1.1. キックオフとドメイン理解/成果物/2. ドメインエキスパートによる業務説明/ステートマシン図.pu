@@ -1,0 +1,213 @@
+@startuml ステートマシン図
+
+title Signup Workflow - オンボーディング状態遷移図
+
+[*] --> 未登録ユーザー : 初回アクセス
+
+state "未登録ユーザー" as unregistered {
+  state "プラン未選択" as no_plan
+  state "プラン選択済み" as plan_selected
+
+  no_plan --> plan_selected : プランを選択
+
+  note right of plan_selected
+    **保存先**: Cookie
+    **永続化**: なし
+    ユーザー識別不可
+  end note
+}
+
+plan_selected --> オンボード中 : 認証情報を登録\n(ユーザー登録完了)
+
+state "オンボード中" as onboarding {
+  state "認証情報登録済み" as auth_registered {
+    state "決済情報未登録" as payment_pending
+    state "決済情報登録中" as payment_processing
+    state "決済失敗" as payment_failed
+
+    payment_pending --> payment_processing : 決済情報を登録
+    payment_processing --> payment_failed : 決済失敗
+    payment_failed --> payment_processing : 決済情報を再登録
+  }
+
+  note right of auth_registered
+    **重要な状態**
+    - DB保存済み
+    - サインイン可能
+    - オンボーディング未完了
+
+    **Temporalで管理する状態**
+    - プラン選択: 完了
+    - サインアップ: 完了
+    - 決済情報: 未完了
+  end note
+}
+
+payment_processing --> アクティブユーザー : 決済完了\n(Stripe Webhook)
+
+state "アクティブユーザー" as active
+
+note right of アクティブユーザー
+  **オンボーディング完了**
+
+  全工程完了:
+  - プラン選択: 完了
+  - サインアップ: 完了
+  - 決済情報: 完了
+
+  サービス利用可能
+end note
+
+アクティブユーザー --> [*] : サービス利用
+
+' 離脱と再開のパス
+onboarding --> onboarding : 離脱・再サインイン\n(未完了工程へ自動遷移)
+
+note bottom of onboarding
+  **離脱・再開シナリオ**
+
+  サインイン時の挙動:
+  1. オンボーディング状態をチェック
+  2. 未完了工程を判定
+  3. 次に実行すべき工程へ自動遷移
+
+  Temporalで実装
+end note
+
+@enduml
+
+@startuml ステートマシン図_工程別詳細
+
+title 各工程の詳細な状態遷移
+
+skinparam state {
+  BackgroundColor<<completed>> LightGreen
+  BackgroundColor<<pending>> LightYellow
+  BackgroundColor<<failed>> LightPink
+}
+
+[*] --> プラン選択工程
+
+state "プラン選択工程" as step1 {
+  [*] --> 未選択
+  未選択 --> 選択済み : プラン選択ボタンクリック
+  選択済み --> [*] : サインアップフォームへ遷移
+
+  note right of 選択済み
+    **完了条件**:
+    サインアップフォームへ遷移時
+
+    **保存データ**:
+    プランID (Cookie)
+  end note
+}
+
+step1 --> サインアップ工程 : 次の工程へ
+
+state "サインアップ工程" as step2 {
+  [*] --> 未登録
+  未登録 --> 登録済み : 認証情報送信\n(メールアドレス・パスワード)
+  登録済み --> [*]
+
+  note right of 登録済み
+    **完了条件**:
+    ユーザー情報のDB保存時
+
+    **保存データ**:
+    - メールアドレス
+    - パスワード（ハッシュ化）
+    - 状態: オンボード中
+
+    **重要**:
+    サインイン可能なユーザーとして扱われる
+  end note
+}
+
+step2 --> 決済情報登録工程 : 次の工程へ
+
+state "決済情報登録工程" as step3 {
+  [*] --> 未登録 <<pending>>
+  未登録 --> 登録中 : Stripeに送信
+  登録中 --> 決済完了 <<completed>> : Webhook: 決済成功
+  登録中 --> 決済失敗 <<failed>> : Webhook: 決済失敗
+  決済失敗 --> 未登録 : 再試行
+  決済完了 --> [*]
+
+  note right of 決済完了
+    **完了条件**:
+    Stripe決済完了Webhook受信時
+
+    **保存データ**:
+    - Stripe顧客ID
+    - 決済情報
+
+    **意味**:
+    初回課金完了
+
+    **状態変更**:
+    オンボード中 → アクティブユーザー
+  end note
+}
+
+step3 --> [*] : オンボーディング完了
+
+@enduml
+
+@startuml ステートマシン図_サインイン時の挙動
+
+title サインイン時のオンボーディング状態判定フロー
+
+[*] --> サインイン処理
+
+state "サインイン処理" as signin {
+  state "認証" as auth
+  state "状態チェック" as check
+
+  auth : メールアドレス・パスワード検証
+  check : オンボーディング状態を確認
+
+  auth --> check : 認証成功
+}
+
+state "オンボーディング状態判定" as decision <<choice>>
+
+signin --> decision
+
+decision --> 未完了工程へ遷移 : 状態 = オンボード中
+decision --> 通常サインイン完了 : 状態 = アクティブユーザー
+
+state "未完了工程へ遷移" as incomplete {
+  state "工程判定" as judge
+  state "自動遷移" as redirect
+
+  judge : Temporalで管理している\n工程完了状態を確認
+  redirect : 次に実行すべき工程へ\n自動的にリダイレクト
+
+  judge --> redirect
+}
+
+note right of incomplete
+  **Temporalで実装する重要ロジック**
+
+  工程の完了状態をチェック:
+  - プラン選択: 完了/未完了
+  - サインアップ: 完了（必ず完了済み）
+  - 決済情報: 未完了 ← ここへ遷移
+
+  次の未完了工程を判定して自動遷移
+end note
+
+state "通常サインイン完了" as normal {
+  note right
+    全工程完了済み
+    サービス利用可能
+  end note
+}
+
+未完了工程へ遷移 --> 決済情報登録画面 : リダイレクト
+通常サインイン完了 --> サービストップ画面 : リダイレクト
+
+決済情報登録画面 --> [*]
+サービストップ画面 --> [*]
+
+@enduml

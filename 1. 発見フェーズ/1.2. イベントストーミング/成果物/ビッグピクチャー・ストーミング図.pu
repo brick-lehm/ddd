@@ -1,0 +1,273 @@
+@startuml ビッグピクチャー・イベントストーミング
+
+title Signup Workflow - ビッグピクチャー・イベントストーミング（全体俯瞰図）
+
+skinparam defaultTextAlignment center
+skinparam backgroundColor #FFFFF0
+
+' 凡例
+legend top left
+  |= 色 |= 要素 |= 説明 |
+  | <back:orange>オレンジ</back> | ドメインイベント | ～された（過去形） |
+  | <back:lightblue>青</back> | コマンド | ～する（命令形） |
+  | <back:yellow>黄</back> | アクター | 誰が/何が |
+  | <back:lightgreen>緑</back> | リードモデル | 何を見て |
+  | <back:plum>紫</back> | ポリシー | ビジネスルール |
+  | <back:lightcoral>赤</back> | Hotspot | 課題・痛み |
+endlegend
+
+' ========================================
+' コンテキスト1: プラン選択コンテキスト
+' ========================================
+package "【プラン選択コンテキスト】" #LightCyan {
+
+  actor "🟡 ユーザー\n(見込み客)" as user1
+  rectangle "🟢 プラン一覧画面" as read1 #lightgreen
+  rectangle "🔵 プランを選択する" as cmd1 #lightblue
+  rectangle "🟠 プラン選択完了" as event1 #orange
+
+  user1 -down-> read1 : 参照
+  read1 -down-> cmd1 : 判断材料
+  cmd1 -down-> event1 : 実行
+
+  rectangle "🟣 サインアップフォームへ\n遷移するルール" as policy1 #plum
+  event1 -down-> policy1
+}
+
+' ========================================
+' コンテキスト2: ユーザー登録コンテキスト（認証コンテキスト）
+' ========================================
+package "【ユーザー登録コンテキスト（認証コンテキスト）】" #LightYellow {
+
+  ' --- サインアップフロー ---
+  rectangle "🔵 サインアップフォームを\n表示する" as cmd2 #lightblue
+  policy1 -down-> cmd2
+
+  rectangle "🟢 サインアップフォーム" as read2 #lightgreen
+  rectangle "🔵 認証情報を登録する" as cmd3 #lightblue
+  rectangle "🟠 ユーザー登録完了" as event2 #orange
+
+  cmd2 -down-> read2
+  user1 -down-> read2 : 参照
+  read2 -down-> cmd3 : 判断材料
+  cmd3 -down-> event2 : 実行
+
+  note right of event2
+    **重要:** この時点で
+    サインイン可能なユーザーとして扱われる
+    状態: オンボード中
+  end note
+
+  rectangle "🟣 決済情報登録へ\n遷移するルール" as policy2 #plum
+  event2 -down-> policy2
+
+  ' --- サインインフロー ---
+  actor "🟡 ユーザー\n(オンボード中\nor アクティブ)" as user2
+  rectangle "🟢 サインインフォーム" as read3 #lightgreen
+  rectangle "🔵 サインインする" as cmd4 #lightblue
+  rectangle "🟠 サインイン成功" as event3 #orange
+
+  user2 -down-> read3 : 参照
+  read3 -down-> cmd4 : 判断材料
+  cmd4 -down-> event3 : 実行
+
+  rectangle "🟣 工程チェックルール\n(あらゆる画面アクセス時)" as policy3 #plum
+  event3 -down-> policy3
+}
+
+' ========================================
+' コンテキスト3: 決済コンテキスト
+' ========================================
+package "【決済コンテキスト】" #LightGreen {
+
+  rectangle "🔵 決済情報登録フォームを\n表示する" as cmd5 #lightblue
+  policy2 -down-> cmd5
+
+  rectangle "🟢 決済情報登録フォーム" as read4 #lightgreen
+  actor "🟡 ユーザー\n(オンボード中)" as user3
+  rectangle "🔵 決済情報を登録する" as cmd6 #lightblue
+
+  cmd5 -down-> read4
+  user3 -down-> read4 : 参照
+  read4 -down-> cmd6 : 判断材料
+
+  actor "🟡 Stripe" as stripe
+  rectangle "🔵 決済完了Webhookを\n送信する" as cmd7 #lightblue
+  rectangle "🟠 決済完了" as event4 #orange
+  rectangle "🟠 決済失敗" as event5 #orange
+
+  cmd6 -down-> stripe : 送信
+  stripe -down-> cmd7 : 実行
+  cmd7 -down-> event4 : 成功時
+  cmd7 -down-> event5 : 失敗時
+
+  rectangle "🟣 全工程完了確認ルール" as policy4 #plum
+  rectangle "🟣 決済再試行ルール" as policy5 #plum
+
+  event4 -down-> policy4
+  event5 -down-> policy5
+
+  policy5 -up-> cmd5 : 再表示
+}
+
+' ========================================
+' コンテキスト4: オンボーディング管理コンテキスト（工程管理コンテキスト）
+' ========================================
+package "【オンボーディング管理コンテキスト（工程管理）】" #Lavender {
+
+  actor "🟡 システム" as system
+  rectangle "🟢 ユーザーの工程完了状態\n(MySQL)" as read5 #lightgreen
+  rectangle "🔵 工程状態をチェックする" as cmd8 #lightblue
+
+  policy3 -down-> cmd8
+  policy4 -down-> cmd8
+
+  system -down-> read5 : 参照
+  read5 -down-> cmd8 : 判断材料
+
+  rectangle "🟠 未完了工程検出" as event6 #orange
+  rectangle "🟠 工程飛ばし検出" as event7 #orange
+  rectangle "🟠 全工程完了検出" as event8 #orange
+
+  cmd8 -down-> event6 : 未完了の場合
+  cmd8 -down-> event7 : 飛ばしの場合
+  cmd8 -down-> event8 : 完了の場合
+
+  rectangle "🟣 未完了工程への\n誘導ルール" as policy6 #plum
+  rectangle "🟣 工程飛ばし検出ルール" as policy7 #plum
+  rectangle "🟣 全工程完了ユーザーの\n誘導ルール" as policy8 #plum
+
+  event6 -down-> policy6
+  event7 -down-> policy7
+  event8 -down-> policy8
+
+  rectangle "🟢 次に実行すべき\n工程の情報" as read6 #lightgreen
+  rectangle "🔵 未完了工程へ遷移する" as cmd9 #lightblue
+  rectangle "🔵 適切な工程へ遷移する" as cmd10 #lightblue
+  rectangle "🔵 サービストップ画面へ\n遷移する" as cmd11 #lightblue
+
+  policy6 -down-> read6
+  policy7 -down-> read6
+
+  read6 -down-> cmd9
+  read6 -down-> cmd10
+
+  policy8 -down-> cmd11
+
+  rectangle "🟠 次の工程が案内された" as event9 #orange
+  cmd9 -down-> event9
+  cmd10 -down-> event9
+
+  ' オンボーディング完了
+  rectangle "🔵 オンボーディングを\n完了する" as cmd12 #lightblue
+  rectangle "🟠 オンボーディング完了" as event10 #orange
+
+  event8 -down-> cmd12 : 全工程完了時
+  cmd12 -down-> event10
+
+  note right of event10
+    状態: アクティブユーザー
+    サービス利用可能
+  end note
+
+  note bottom of read5
+    **Temporalの役割**
+    ワークフローが「決済情報登録待ち」という
+    状態で一時停止していることを、
+    ワーカーの再起動やサーバーの障害に関係なく、
+    永続的に記憶し続ける
+  end note
+}
+
+' ========================================
+' Hotspot（課題・痛み）
+' ========================================
+rectangle "🔴 **痛み1**\nサインアップ途中離脱後の\n再サインアップでエラー発生\n『既に登録済み』エラーで続行不可" as hotspot1 #lightcoral
+
+rectangle "🔴 **痛み2**\n手動対応の運営コスト\n1件あたり30分〜1時間\n他業務を圧迫" as hotspot2 #lightcoral
+
+rectangle "🔴 **痛み3**\n10%のユーザーが\n問い合わせせず離脱\n機会損失が発生" as hotspot3 #lightcoral
+
+rectangle "🔴 **痛み4（根本原因）**\n工程管理の仕組みが未実装\nシステムが工程完了状態を\n管理できていない" as hotspot4 #lightcoral
+
+hotspot1 -[hidden]down-> hotspot2
+hotspot2 -[hidden]down-> hotspot3
+hotspot3 -[hidden]down-> hotspot4
+
+' Hotspotの配置（問題が発生する箇所）
+event2 .. hotspot1 : 問題発生箇所
+hotspot1 .. hotspot2 : 結果
+hotspot2 .. hotspot3 : 影響
+hotspot4 .. system : 解決すべき
+
+@enduml
+
+@startuml コンテキストマップ
+
+title Signup Workflow - 境界付けられたコンテキスト（コンテキストマップ）
+
+skinparam packageStyle rectangle
+skinparam backgroundColor #FFFFF0
+
+package "プラン選択コンテキスト" as plan {
+  [プラン一覧]
+  [プラン選択処理]
+}
+
+package "ユーザー登録コンテキスト\n（認証コンテキスト）" as auth {
+  [サインアップ処理]
+  [サインイン処理]
+  [ユーザー管理]
+}
+
+package "決済コンテキスト" as payment {
+  [決済情報登録]
+  [Stripe連携]
+  [決済処理]
+}
+
+package "オンボーディング管理コンテキスト\n（工程管理コンテキスト）" as onboarding {
+  [工程状態管理]
+  [工程チェック]
+  [画面遷移制御]
+  [Temporal連携]
+}
+
+plan -down-> auth : プラン選択完了\n→ サインアップフォーム表示
+auth -down-> payment : ユーザー登録完了\n→ 決済情報登録フォーム表示
+payment -down-> onboarding : 決済完了\n→ 全工程完了確認
+
+auth -right-> onboarding : サインイン成功\n→ 工程状態チェック
+onboarding -left-> auth : 未完了工程検出\n→ 適切な画面へ遷移
+onboarding -left-> payment : 決済未完了\n→ 決済フォームへ遷移
+
+note right of onboarding
+  **中核的な境界付けられたコンテキスト**
+
+  このコンテキストが今回の
+  プロジェクトで新たに追加される
+  最も重要な部分
+
+  責務:
+  - 工程完了状態の永続化
+  - あらゆる画面アクセス時の工程チェック
+  - 適切な工程への自動誘導
+  - Temporalによる状態管理
+end note
+
+note bottom of auth
+  既存の認証システムと連携
+  サインアップ/サインイン機能を提供
+end note
+
+note bottom of payment
+  Stripeとの統合
+  決済処理を担当
+end note
+
+note bottom of plan
+  プラン選択UI
+  Cookie管理
+end note
+
+@enduml
